@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>산업안전 모니터링 시스템</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div id="app">
+
+  <!-- ===== Login View (QR 표시 로그인 - 개인 휴대폰으로 스캔) ===== -->
+  <section id="view-login" class="view active">
+    <div class="login-card">
+      <h1>산업안전 모니터링 시스템</h1>
+      <p class="muted">개인 휴대폰 카메라로 아래 QR 코드를 스캔해 로그인하세요.</p>
+
+      <div class="qr-display-box">
+        <div id="qr-code-el"></div>
+      </div>
+
+      <p id="qr-status" class="muted small qr-status">QR 코드를 스캔하면 자동으로 로그인됩니다.</p>
+      <p id="qr-timer" class="muted small qr-status">코드 갱신까지 <span id="qr-timer-sec">60</span>초</p>
+      <p id="qr-approved-as" class="qr-approved hidden"></p>
+
+      <button id="qr-refresh-btn" type="button" class="btn-secondary btn-block">코드 새로고침</button>
+
+      <button id="qr-manual-toggle" type="button" class="btn-text btn-block">(개발용) 스캔 시뮬레이션</button>
+      <div id="qr-manual-box" class="qr-manual-box hidden">
+        <select id="qr-manual-admin">
+          <option value="admin1">김관리 (관리자)</option>
+          <option value="admin2">이안전 (관리자)</option>
+        </select>
+        <button id="qr-manual-submit" type="button" class="btn-secondary">로그인 승인</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== App Shell (로그인 이후) ===== -->
+  <div id="app-shell" class="hidden">
+
+    <nav id="sidebar">
+      <div class="brand">안전모니터링</div>
+      <button class="nav-btn active" data-view="main">
+        <span class="nav-icon">◆</span><span class="nav-label">메인</span>
+      </button>
+      <button class="nav-btn" data-view="recode">
+        <span class="nav-icon">▣</span><span class="nav-label">이벤트 기록</span>
+      </button>
+      <button class="nav-btn" data-view="area">
+        <span class="nav-icon">⬒</span><span class="nav-label">구역 설정</span>
+      </button>
+      <div class="nav-spacer"></div>
+      <div id="admin-badge" class="admin-badge">로그인: <strong id="admin-name">-</strong></div>
+      <button id="logout-btn" class="nav-btn nav-btn-ghost">
+        <span class="nav-icon">⏻</span><span class="nav-label">로그아웃</span>
+      </button>
+    </nav>
+
+    <main id="content">
+
+      <!-- ---- Main 대시보드 ---- -->
+      <section id="view-main" class="view active">
+        <div id="alert-banner" class="alert-banner hidden"></div>
+
+        <div class="video-grid">
+          <div class="video-box">
+            <span class="video-label">RealSense D455 영상</span>
+            <span id="status-badge" class="status-badge status-ok">정상</span>
+          </div>
+          <div class="video-box">
+            <span class="video-label">안전모 감지 모노캠</span>
+          </div>
+        </div>
+
+        <div class="stat-grid">
+          <div class="stat-card">
+            <p class="stat-label">사람-로봇 거리</p>
+            <p class="stat-value" id="stat-distance">--</p>
+          </div>
+          <div class="stat-card">
+            <p class="stat-label">안전모 착용</p>
+            <p class="stat-value" id="stat-helmet">--</p>
+          </div>
+          <div class="stat-card">
+            <p class="stat-label">소음</p>
+            <p class="stat-value" id="stat-noise">--</p>
+          </div>
+          <div class="stat-card">
+            <p class="stat-label">출입문</p>
+            <p class="stat-value" id="stat-door">--</p>
+          </div>
+          <div class="stat-card">
+            <p class="stat-label">로봇 / 컨베이어</p>
+            <p class="stat-value" id="stat-robot">--</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ---- 이벤트 기록 (Recode_List) ---- -->
+      <section id="view-recode" class="view">
+        <div class="storage-row">
+          <span id="storage-text" class="muted small">저장공간 확인 중...</span>
+        </div>
+        <div class="storage-bar"><div id="storage-fill" class="storage-fill"></div></div>
+
+        <div class="filter-row" id="filter-row">
+          <button class="chip active" data-filter="all">전체</button>
+          <button class="chip" data-filter="helmet">안전모</button>
+          <button class="chip" data-filter="proximity">사람 접근</button>
+          <button class="chip" data-filter="noise">소음</button>
+        </div>
+
+        <div class="date-range-row">
+          <div class="date-field">
+            <label for="date-start">시작</label>
+            <input id="date-start" type="datetime-local">
+          </div>
+          <div class="date-field">
+            <label for="date-end">종료</label>
+            <input id="date-end" type="datetime-local">
+          </div>
+          <button id="date-search-btn" type="button" class="btn-secondary">조회</button>
+          <button id="date-reset-btn" type="button" class="btn-text">초기화</button>
+        </div>
+        <p class="muted small" style="margin:4px 0 16px;">※ 저장된 이벤트 클립 중 해당 기간에 속하는 기록만 조회됩니다. (상시 녹화가 아닌 이벤트 발생 시에만 녹화)</p>
+
+        <div id="event-list" class="event-list"></div>
+      </section>
+
+      <!-- ---- 구역 설정 (AreaSetting) ---- -->
+      <section id="view-area" class="view">
+
+        <h2 class="section-title">출입 안전</h2>
+        <div class="setting-card">
+          <label for="range-door-open">문 열림 유지 시간</label>
+          <input id="range-door-open" type="range" min="1" max="10" step="1" value="5">
+          <p class="range-value"><span id="val-door-open">5</span> 초</p>
+        </div>
+
+        <h2 class="section-title">로봇 안전</h2>
+        <div class="setting-card">
+          <label for="range-stop-dist">정지 거리 임계값</label>
+          <input id="range-stop-dist" type="range" min="0" max="3" step="0.1" value="1.0">
+          <p class="range-value"><span id="val-stop-dist">1.0</span> m</p>
+
+          <label for="range-resume">이탈 후 재가동 대기</label>
+          <input id="range-resume" type="range" min="0" max="10" step="1" value="3">
+          <p class="range-value"><span id="val-resume">3</span> 초</p>
+
+          <label for="range-noise">소음 임계값</label>
+          <input id="range-noise" type="range" min="30" max="90" step="1" value="50">
+          <p class="range-value"><span id="val-noise">50</span> dB</p>
+        </div>
+
+        <button id="save-area-btn" class="btn-primary btn-block">저장 (라즈베리파이로 전송)</button>
+        <p id="save-status" class="muted small hidden"></p>
+      </section>
+
+    </main>
+  </div>
+
+</div>
+
+<script src="js/vendor/qrcode.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
