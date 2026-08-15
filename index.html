@@ -13,26 +13,30 @@
   <!-- ===== Login View (QR 표시 로그인 - 개인 휴대폰으로 스캔) ===== -->
   <section id="view-login" class="view active">
     <div class="login-card">
-      <h1>산업안전 모니터링 시스템</h1>
-      <p class="muted">개인 휴대폰 카메라로 아래 QR 코드를 스캔해 로그인하세요.</p>
-
-      <div class="qr-display-box">
-        <div id="qr-code-el"></div>
+      <div class="login-header">
+        <h1>산업안전 모니터링</h1>
+        <p class="login-subtitle">SAFETY MONITORING SYSTEM</p>
       </div>
 
-      <p id="qr-status" class="muted small qr-status">QR 코드를 스캔하면 자동으로 로그인됩니다.</p>
-      <p id="qr-timer" class="muted small qr-status">코드 갱신까지 <span id="qr-timer-sec">60</span>초</p>
-      <p id="qr-approved-as" class="qr-approved hidden"></p>
+      <div class="login-body">
+        <div class="qr-display-box">
+          <div id="qr-code-el"></div>
+        </div>
 
-      <button id="qr-refresh-btn" type="button" class="btn-secondary btn-block">코드 새로고침</button>
+        <p id="qr-status" class="muted small qr-status">QR 코드를 스캔하면 자동으로 로그인됩니다.</p>
+        <p id="qr-timer" class="muted small qr-status">코드 갱신까지 <span id="qr-timer-sec">60</span>초</p>
+        <p id="qr-approved-as" class="qr-approved hidden"></p>
 
-      <button id="qr-manual-toggle" type="button" class="btn-text btn-block">(개발용) 스캔 시뮬레이션</button>
-      <div id="qr-manual-box" class="qr-manual-box hidden">
-        <select id="qr-manual-admin">
-          <option value="admin1">김관리 (관리자)</option>
-          <option value="admin2">이안전 (관리자)</option>
-        </select>
-        <button id="qr-manual-submit" type="button" class="btn-secondary">로그인 승인</button>
+        <button id="qr-refresh-btn" type="button" class="btn-secondary btn-block">코드 새로고침</button>
+
+        <button id="qr-manual-toggle" type="button" class="btn-text btn-block">(개발용) 스캔 시뮬레이션</button>
+        <div id="qr-manual-box" class="qr-manual-box hidden">
+          <select id="qr-manual-admin">
+            <option value="admin1">김관리 (관리자)</option>
+            <option value="admin2">이안전 (관리자)</option>
+          </select>
+          <button id="qr-manual-submit" type="button" class="btn-secondary">로그인 승인</button>
+        </div>
       </div>
     </div>
   </section>
@@ -40,53 +44,64 @@
   <!-- ===== App Shell (로그인 이후) ===== -->
   <div id="app-shell" class="hidden">
 
-    <nav id="sidebar">
-      <div class="brand">안전모니터링</div>
+    <header id="topbar">
+      <span class="brand">안전모니터링</span>
+      <button id="menu-btn" type="button" aria-label="메뉴 열기" aria-expanded="false">☰</button>
+    </header>
+
+    <div id="panel-backdrop" class="hidden"></div>
+
+    <aside id="side-panel">
+      <div class="panel-header">
+        <span class="panel-title">메뉴</span>
+        <button id="panel-close-btn" type="button" aria-label="메뉴 닫기">✕</button>
+      </div>
+
       <button class="nav-btn active" data-view="main">
-        <span class="nav-icon">◆</span><span class="nav-label">메인</span>
+        <span class="nav-label">메인</span>
       </button>
       <button class="nav-btn" data-view="recode">
-        <span class="nav-icon">▣</span><span class="nav-label">이벤트 기록</span>
+        <span class="nav-label">이벤트 기록</span>
       </button>
       <button class="nav-btn" data-view="area">
-        <span class="nav-icon">⬒</span><span class="nav-label">구역 설정</span>
+        <span class="nav-label">구역 설정</span>
+      </button>
+      <button class="nav-btn" data-view="settings">
+        <span class="nav-label">설정</span>
       </button>
       <div class="nav-spacer"></div>
       <div id="admin-badge" class="admin-badge">로그인: <strong id="admin-name">-</strong></div>
       <button id="logout-btn" class="nav-btn nav-btn-ghost">
-        <span class="nav-icon">⏻</span><span class="nav-label">로그아웃</span>
+        <span class="nav-label">로그아웃</span>
       </button>
-    </nav>
+    </aside>
 
     <main id="content">
 
+      <!-- 위험 상황 알림 배너 - 어느 화면에 있든(메인/기록/설정) 항상 최상단에 보입니다 -->
+      <div id="alert-banner" class="alert-banner hidden"></div>
+
       <!-- ---- Main 대시보드 ---- -->
       <section id="view-main" class="view active">
-        <div id="alert-banner" class="alert-banner hidden"></div>
 
-        <div class="video-grid">
-          <div class="video-box">
-            <span class="video-label">RealSense D455 영상</span>
-            <span id="status-badge" class="status-badge status-ok">정상</span>
+        <div class="camera-grid">
+          <div class="video-hero">
+            <span class="video-label">안전모 인식 (모노 카메라)</span>
+            <div class="video-chips">
+              <span class="video-chip" id="chip-helmet">안전모 --</span>
+            </div>
           </div>
-          <div class="video-box">
-            <span class="video-label">안전모 감지 모노캠</span>
+
+          <div class="video-hero">
+            <span class="video-label">위치·거리 감지 (RealSense D455)</span>
+            <span id="status-badge" class="status-badge status-ok">정상</span>
+            <div class="video-chips">
+              <span class="video-chip" id="chip-distance">거리 -- m</span>
+            </div>
           </div>
         </div>
 
         <div class="stat-grid">
-          <div class="stat-card">
-            <p class="stat-label">사람-로봇 거리</p>
-            <p class="stat-value" id="stat-distance">--</p>
-          </div>
-          <div class="stat-card">
-            <p class="stat-label">안전모 착용</p>
-            <p class="stat-value" id="stat-helmet">--</p>
-          </div>
-          <div class="stat-card">
-            <p class="stat-label">소음</p>
-            <p class="stat-value" id="stat-noise">--</p>
-          </div>
           <div class="stat-card">
             <p class="stat-label">출입문</p>
             <p class="stat-value" id="stat-door">--</p>
@@ -94,6 +109,10 @@
           <div class="stat-card">
             <p class="stat-label">로봇 / 컨베이어</p>
             <p class="stat-value" id="stat-robot">--</p>
+          </div>
+          <div class="stat-card">
+            <p class="stat-label">소음 (마이크)</p>
+            <p class="stat-value" id="chip-noise">-- dB</p>
           </div>
         </div>
       </section>
@@ -154,8 +173,46 @@
           <p class="range-value"><span id="val-noise">50</span> dB</p>
         </div>
 
-        <button id="save-area-btn" class="btn-primary btn-block">저장 (라즈베리파이로 전송)</button>
+        <button id="save-area-btn" class="btn-primary btn-block">저장</button>
         <p id="save-status" class="muted small hidden"></p>
+      </section>
+
+      <!-- ---- 설정 (Settings) ---- -->
+      <section id="view-settings" class="view">
+
+        <h2 class="section-title">알림 설정</h2>
+        <div class="setting-card">
+          <label class="toggle-row" for="notif-sound-toggle">
+            <input id="notif-sound-toggle" type="checkbox" checked>
+            <span>위험 상황 발생 시 알림음 재생</span>
+          </label>
+
+          <label class="toggle-row" style="margin-top:14px;" for="notif-stop-toggle">
+            <input id="notif-stop-toggle" type="checkbox" checked>
+            <span>로봇 정지 시 알림</span>
+          </label>
+          <label class="toggle-row" style="margin-top:10px;" for="notif-helmet-toggle">
+            <input id="notif-helmet-toggle" type="checkbox" checked>
+            <span>안전모 미착용 시 알림</span>
+          </label>
+        </div>
+
+        <h2 class="section-title">계정</h2>
+        <div class="setting-card">
+          <p class="muted small" style="margin:0 0 14px;">현재 로그인: <strong id="settings-admin-name">-</strong></p>
+
+          <label for="pw-current">현재 비밀번호</label>
+          <input id="pw-current" type="password" placeholder="현재 비밀번호 입력">
+
+          <label for="pw-new">새 비밀번호</label>
+          <input id="pw-new" type="password" placeholder="4자 이상 입력">
+
+          <label for="pw-new-confirm">새 비밀번호 확인</label>
+          <input id="pw-new-confirm" type="password" placeholder="새 비밀번호 다시 입력">
+
+          <button id="change-pw-btn" type="button" class="btn-primary btn-block">비밀번호 변경</button>
+          <p id="pw-change-status" class="muted small hidden" style="margin-top:10px;"></p>
+        </div>
       </section>
 
     </main>
