@@ -1,0 +1,121 @@
+diff --git a/src/index.css b/src/index.css
+index db02514..a3b4f15 100644
+--- a/src/index.css
++++ b/src/index.css
+@@ -68,6 +68,9 @@ body{
+ .top-grid > .card:nth-child(1){ flex:1.3; min-width:0; }
+ .top-grid > .card:nth-child(2){ flex:1; min-width:0; }
+ @media (max-width:900px){ .top-grid{ flex-direction:column; } }
++.triple-grid{ display:flex; gap:16px; align-items:stretch; }
++.triple-grid > .card{ flex:1; min-width:0; }
++@media (max-width:900px){ .triple-grid{ flex-direction:column; } }
+ 
+ .card{ background:var(--panel); border:1px solid var(--border); border-radius:16px; padding:18px; box-shadow:0 1px 2px rgba(16,24,40,.04); }
+ .card-head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; }
+diff --git a/src/pages/Dashboard.jsx b/src/pages/Dashboard.jsx
+index ab32a58..a59dcf7 100644
+--- a/src/pages/Dashboard.jsx
++++ b/src/pages/Dashboard.jsx
+@@ -23,7 +23,7 @@ export default function Dashboard({ state, states, distance, helmetOk, doorLocke
+         </div>
+       )}
+ 
+-      {/* 1행: 모노카메라(왼) + 안전상태(오) */}
++      {/* 1행: 모노카메라(왼) + D435i(오) */}
+       <div className="top-grid">
+         <div className="card">
+           <div className="card-head">
+@@ -67,29 +67,6 @@ export default function Dashboard({ state, states, distance, helmetOk, doorLocke
+           </div>
+         </div>
+ 
+-        <div className="card">
+-          <div className="card-head">
+-            <div className="card-head-left"><div className="icon-badge"><Shield size={16} /></div><div className="card-title">안전 상태</div></div>
+-            <div className="pill">현재 상태</div>
+-          </div>
+-          <div className="status-box" style={{ background: fireActive ? '#fde8ea' : s.box }}>
+-            <div className="status-icon" style={{ background: fireActive ? '#e63946' : s.icon }}>
+-              {fireActive ? <Flame size={20} /> : <Check size={20} />}
+-            </div>
+-            <div>
+-              <div className="status-name" style={{ color: fireActive ? '#e63946' : s.icon }}>{fireActive ? '화재 비상' : s.name}</div>
+-              <div className="status-hint">{fireActive ? '출입문 개방, 로봇 초기위치 대기 중입니다.' : s.hint}</div>
+-            </div>
+-          </div>
+-          <div className="info-row"><User size={16} style={{ color: 'var(--dim)' }} /><span className="lbl">작업자 거리</span><span className="val mono">{distance.toFixed(2)} m</span></div>
+-          <div className="info-row"><Flame size={16} style={{ color: 'var(--dim)' }} /><span className="lbl">화재 감지</span><span className="val" style={{ color: fireActive ? 'var(--red)' : undefined }}>{fireActive ? '감지됨' : '이상 없음'}</span></div>
+-          <div className="info-row"><HardHat size={16} style={{ color: 'var(--dim)' }} /><span className="lbl">안전모 감지 (출입구)</span><span className="val" style={{ color: helmetOk ? 'var(--green)' : 'var(--red)' }}>{helmetOk ? '감지됨' : '미착용'}</span></div>
+-          <div className="info-row"><Rows3 size={16} style={{ color: 'var(--dim)' }} /><span className="lbl">컨베이어 이상감지</span><span className="val" style={{ color: conveyorState === 'JAM' ? 'var(--red)' : 'var(--green)' }}>{conveyorState === 'JAM' ? '이상 감지' : '정상'}</span></div>
+-        </div>
+-      </div>
+-
+-      {/* 2행: D435i(왼) + 설비상태(오) */}
+-      <div className="top-grid">
+         <div className="card">
+           <div className="card-head">
+             <div className="card-head-left"><div className="icon-badge"><Camera size={16} /></div><div className="card-title">D435i 카메라 (현장)</div></div>
+@@ -132,6 +109,29 @@ export default function Dashboard({ state, states, distance, helmetOk, doorLocke
+             <div className="cam-caption">RealSense D435i · 카메라 영상 (목업) · Segmentation 탐지</div>
+           </div>
+         </div>
++      </div>
++
++      {/* 2행: 안전상태(왼) + 설비상태(중앙) + AI감지(오른) */}
++      <div className="triple-grid">
++        <div className="card">
++          <div className="card-head">
++            <div className="card-head-left"><div className="icon-badge"><Shield size={16} /></div><div className="card-title">안전 상태</div></div>
++            <div className="pill">현재 상태</div>
++          </div>
++          <div className="status-box" style={{ background: fireActive ? '#fde8ea' : s.box }}>
++            <div className="status-icon" style={{ background: fireActive ? '#e63946' : s.icon }}>
++              {fireActive ? <Flame size={20} /> : <Check size={20} />}
++            </div>
++            <div>
++              <div className="status-name" style={{ color: fireActive ? '#e63946' : s.icon }}>{fireActive ? '화재 비상' : s.name}</div>
++              <div className="status-hint">{fireActive ? '출입문 개방, 로봇 초기위치 대기 중입니다.' : s.hint}</div>
++            </div>
++          </div>
++          <div className="info-row"><User size={16} style={{ color: 'var(--dim)' }} /><span className="lbl">작업자 거리</span><span className="val mono">{distance.toFixed(2)} m</span></div>
++          <div className="info-row"><Flame size={16} style={{ color: 'var(--dim)' }} /><span className="lbl">화재 감지</span><span className="val" style={{ color: fireActive ? 'var(--red)' : undefined }}>{fireActive ? '감지됨' : '이상 없음'}</span></div>
++          <div className="info-row"><HardHat size={16} style={{ color: 'var(--dim)' }} /><span className="lbl">안전모 감지 (출입구)</span><span className="val" style={{ color: helmetOk ? 'var(--green)' : 'var(--red)' }}>{helmetOk ? '감지됨' : '미착용'}</span></div>
++          <div className="info-row"><Rows3 size={16} style={{ color: 'var(--dim)' }} /><span className="lbl">컨베이어 이상감지</span><span className="val" style={{ color: conveyorState === 'JAM' ? 'var(--red)' : 'var(--green)' }}>{conveyorState === 'JAM' ? '이상 감지' : '정상'}</span></div>
++        </div>
+ 
+         <div className="card">
+           <div className="card-head"><div className="card-head-left"><div className="icon-badge"><Settings size={16} /></div><div className="card-title">설비 상태</div></div></div>
+@@ -156,20 +156,20 @@ export default function Dashboard({ state, states, distance, helmetOk, doorLocke
+             </div>
+           )}
+         </div>
+-      </div>
+ 
+-      <div className="card">
+-        <div className="card-head">
+-          <div className="card-head-left"><div className="icon-badge indigo"><Cpu size={16} /></div><div className="card-title">AI / 뎁스 감지 정보</div></div>
+-          <div className="pill live">● {state === 'NORMAL' ? '감지 중' : s.name}</div>
+-        </div>
+-        <div className="ai-grid">
+-          <div className="ai-cell"><Target /><div className="lbl">감지 객체</div><div className="val">작업자</div></div>
+-          <div className="ai-cell"><User /><div className="lbl">작업자 거리</div><div className="val mono">{distance.toFixed(2)} m</div></div>
+-          <div className="ai-cell"><MoveHorizontal /><div className="lbl">X 위치</div><div className="val mono">0.32 m</div></div>
+-          <div className="ai-cell"><MoveVertical /><div className="lbl">Y 위치</div><div className="val mono">1.10 m</div></div>
+-          <div className="ai-cell"><MoveDiagonal /><div className="lbl">Z 위치</div><div className="val mono">{distance.toFixed(2)} m</div></div>
+-          <div className="ai-cell"><ShieldCheck /><div className="lbl">안전구역</div><div className="val" style={{ color: danger ? 'var(--red)' : 'var(--green)' }}>{danger ? '위험' : '정상'}</div></div>
++        <div className="card">
++          <div className="card-head">
++            <div className="card-head-left"><div className="icon-badge indigo"><Cpu size={16} /></div><div className="card-title">AI / 뎁스 감지 정보</div></div>
++            <div className="pill live">● {state === 'NORMAL' ? '감지 중' : s.name}</div>
++          </div>
++          <div className="ai-grid">
++            <div className="ai-cell"><Target /><div className="lbl">감지 객체</div><div className="val">작업자</div></div>
++            <div className="ai-cell"><User /><div className="lbl">작업자 거리</div><div className="val mono">{distance.toFixed(2)} m</div></div>
++            <div className="ai-cell"><MoveHorizontal /><div className="lbl">X 위치</div><div className="val mono">0.32 m</div></div>
++            <div className="ai-cell"><MoveVertical /><div className="lbl">Y 위치</div><div className="val mono">1.10 m</div></div>
++            <div className="ai-cell"><MoveDiagonal /><div className="lbl">Z 위치</div><div className="val mono">{distance.toFixed(2)} m</div></div>
++            <div className="ai-cell"><ShieldCheck /><div className="lbl">안전구역</div><div className="val" style={{ color: danger ? 'var(--red)' : 'var(--green)' }}>{danger ? '위험' : '정상'}</div></div>
++          </div>
+         </div>
+       </div>
+     </>
