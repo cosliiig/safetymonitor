@@ -65,7 +65,8 @@ body{
 .main{ flex:1; min-width:0; padding:20px 24px 130px; display:flex; flex-direction:column; gap:16px; }
 
 .top-grid{ display:flex; gap:16px; align-items:stretch; }
-.top-grid > .card{ flex:1; min-width:0; }
+.top-grid > .card:nth-child(1){ flex:1.3; min-width:0; }
+.top-grid > .card:nth-child(2){ flex:1; min-width:0; }
 @media (max-width:900px){ .top-grid{ flex-direction:column; } }
 .triple-grid{ display:flex; gap:16px; align-items:stretch; }
 .triple-grid > .card{ flex:1; min-width:0; }
