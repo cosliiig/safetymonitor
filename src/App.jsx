@@ -1,9 +1,12 @@
 import { useState, useEffect, useRef } from 'react';
 import { NavLink, Routes, Route, Navigate } from 'react-router-dom';
-import { Home, Activity, Settings, ClipboardList, Shield } from 'lucide-react';
+import { Home, Activity, ClipboardList, Shield, Bell, LogOut, Ruler } from 'lucide-react';
 import Dashboard from './pages/Dashboard';
 import SystemHealth from './pages/SystemHealth';
 import EventLog from './pages/EventLog.jsx';
+import Notifications from './pages/Notifications.jsx';
+import ZoneSettings from './pages/ZoneSettings.jsx';
+import Login from './pages/Login.jsx';
 
 const STATES = {
   NORMAL:    { name:'정상', hint:'현재 감지된 위험 요소가 없습니다.', box:'#e7f9f0', icon:'#12b76a', sys:'시스템 정상', sysDot:'#37e08a' },
@@ -13,47 +16,88 @@ const STATES = {
   RECOVERY:  { name:'복구', hint:'안전 조건을 확인하고 정상 복귀를 준비 중입니다.', box:'#eaf1ff', icon:'#2f5fdb', sys:'복구 중', sysDot:'#2f5fdb' },
 };
 
+function formatDateTime(d) {
+  const pad = n => (n < 10 ? '0' + n : '' + n);
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+}
+
 export default function App() {
+  const [user, setUser] = useState(null);
+
   const [state, setState] = useState('NORMAL');
   const [distance, setDistance] = useState(1.82);
   const [rosUp, setRosUp] = useState(true);
   const [clock, setClock] = useState('--:--:--');
 
+  const [helmetOk, setHelmetOk] = useState(true);
+  const [doorLocked, setDoorLocked] = useState(false);
+  const [conveyorState, setConveyorState] = useState('OK'); // OK | PENDING | JAM
+  const [fireActive, setFireActive] = useState(false);
+
+  const [events, setEvents] = useState([
+    { id: 'seed-1', time: '2026-09-07 14:21:03', type: 'HUMAN', title: '로봇 접근 감지 — 강제정지', detail: '작업자 0.92m 접근, ISO 13855 임계값 이하로 로봇 정지', duration: '3s+5s', read: true },
+    { id: 'seed-2', time: '2026-09-07 11:05:41', type: 'HELMET', title: '안전모 미착용 감지', detail: '출입구 모노카메라 - 미착용 확인, 출입문 잠금', duration: '2s', read: true },
+  ]);
+  const [storagePct, setStoragePct] = useState(12.4);
+  const [notifOpen, setNotifOpen] = useState(false);
+
+  const [settings, setSettings] = useState({
+    safeDistance: 1.20,
+    escalateMs: 2500,
+    conveyorTimeoutMs: 2000,
+    preRollSec: 3,
+    postRollSec: 5,
+    dbQuotaPct: 50,
+  });
+
   const stateRef = useRef(state);
   useEffect(() => { stateRef.current = state; }, [state]);
+  const fireRef = useRef(fireActive);
+  useEffect(() => { fireRef.current = fireActive; }, [fireActive]);
   const escalateTimer = useRef(null);
+  const conveyorTimer = useRef(null);
 
   useEffect(() => {
-    const pad = n => (n < 10 ? '0' + n : '' + n);
-    const tick = () => {
-      const d = new Date();
-      setClock(`${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`);
-    };
+    const tick = () => setClock(formatDateTime(new Date()).slice(11));
     tick();
     const id = setInterval(tick, 1000);
     return () => clearInterval(id);
   }, []);
 
+  function addEvent(type, title, detail, duration) {
+    setEvents(prev => [{ id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, time: formatDateTime(new Date()), type, title, detail, duration, read: false }, ...prev]);
+    setStoragePct(p => Math.min(100, +(p + (1.5 + Math.random() * 3)).toFixed(1)));
+  }
+
   function evaluateRisk() {
+    if (fireRef.current) return; // 화재 시퀀스 진행 중에는 접근 이벤트 평가를 보류
     if (stateRef.current === 'NORMAL') {
       setState('WARNING');
       clearTimeout(escalateTimer.current);
       escalateTimer.current = setTimeout(() => {
-        if (stateRef.current === 'WARNING') {
+        if (stateRef.current === 'WARNING' && !fireRef.current) {
           setState('EMERGENCY');
-          setTimeout(() => { if (stateRef.current === 'EMERGENCY') setState('STOP'); }, 500);
+          setTimeout(() => {
+            if (stateRef.current === 'EMERGENCY' && !fireRef.current) {
+              setState('STOP');
+              addEvent('HUMAN', '로봇 접근 감지 — 강제정지', `작업자 ${distance.toFixed(2)}m 접근, 안전거리(${settings.safeDistance.toFixed(2)}m) 이하로 로봇 정지`, `${settings.preRollSec}s+${settings.postRollSec}s`);
+            }
+          }, 500);
         }
-      }, 2500);
+      }, settings.escalateMs);
     }
   }
 
   function simulateApproach() { setDistance(0.8); evaluateRisk(); }
-  function simulateFire() { evaluateRisk(); }
   function clearDanger() {
     setDistance(1.82);
     if (stateRef.current === 'WARNING') { clearTimeout(escalateTimer.current); setState('NORMAL'); }
   }
-  function forceStop() { clearTimeout(escalateTimer.current); setState('STOP'); }
+  function forceStop() {
+    clearTimeout(escalateTimer.current);
+    if (stateRef.current !== 'STOP') addEvent('HUMAN', '로봇 접근 감지 — 강제정지', '수동 트리거로 강제정지 실행', `${settings.preRollSec}s+${settings.postRollSec}s`);
+    setState('STOP');
+  }
   function recover() {
     if (stateRef.current !== 'STOP') return;
     setState('RECOVERY');
@@ -61,8 +105,47 @@ export default function App() {
   }
   function toggleRos() { setRosUp(v => !v); }
 
+  function toggleHelmet() {
+    if (!helmetOk) { setHelmetOk(true); setDoorLocked(false); return; }
+    setHelmetOk(false);
+    setDoorLocked(true);
+    addEvent('HELMET', '안전모 미착용 감지', '출입구 모노카메라 - 미착용 확인, 출입문 잠금 및 즉시 녹화', '2s');
+  }
+
+  function simulateConveyorJam() {
+    if (conveyorState !== 'OK') return;
+    setConveyorState('PENDING');
+    clearTimeout(conveyorTimer.current);
+    conveyorTimer.current = setTimeout(() => {
+      setConveyorState('JAM');
+      addEvent('CONVEYOR', '컨베이어 이상감지', `센서1 감지 후 ${(settings.conveyorTimeoutMs / 1000).toFixed(1)}s 내 센서2 미감지`, `${settings.preRollSec}s+${settings.postRollSec}s`);
+    }, settings.conveyorTimeoutMs);
+  }
+  function resetConveyor() { clearTimeout(conveyorTimer.current); setConveyorState('OK'); }
+
+  function simulateFire() {
+    if (fireActive) return;
+    clearTimeout(escalateTimer.current);
+    setFireActive(true);
+    addEvent('FIRE', '화재 감지 — 비상 시퀀스 시작', '출입문 개방, 로봇 초기위치 이동 지시 (사람감지 우선). 다른 이벤트보다 우선 처리됩니다.', '진행 중');
+  }
+  function resolveFire() {
+    if (!fireActive) return;
+    setFireActive(false);
+    setState('NORMAL');
+    setDistance(1.82);
+    addEvent('FIRE', '화재 상황 종료', '관리자가 상황종료를 확인 — 로봇 정상 운전 재개', '완료');
+  }
+
+  function markAllRead() { setEvents(prev => prev.map(e => ({ ...e, read: true }))); }
+
+  if (!user) return <Login onLogin={setUser} />;
+
   const s = STATES[state];
   const linkClass = ({ isActive }) => 'nav-item' + (isActive ? ' active' : '');
+  const unread = events.filter(e => !e.read).length;
+  const sysLabel = fireActive ? '화재 비상' : s.sys;
+  const sysDot = fireActive ? '#e63946' : s.sysDot;
 
   return (
     <div className="app">
@@ -76,10 +159,37 @@ export default function App() {
         </div>
         <div className="topbar-right">
           <div className="sys-pill">
-            <span className="sys-dot" style={{ background: rosUp ? s.sysDot : '#98a2b3' }}></span>
-            {rosUp ? s.sys : '통신두절 · MCU 단독'}
+            <span className="sys-dot" style={{ background: rosUp ? sysDot : '#98a2b3' }}></span>
+            {rosUp ? sysLabel : '통신두절 · MCU 단독'}
           </div>
           <div className="mono">{clock}</div>
+          <div className="notif-wrap">
+            <button className="icon-btn" onClick={() => setNotifOpen(v => !v)}>
+              <Bell size={16} />
+              {unread > 0 && <span className="notif-badge">{unread}</span>}
+            </button>
+            {notifOpen && (
+              <div className="notif-dropdown">
+                <div className="notif-dropdown-head">
+                  <span>최근 알림</span>
+                  <button onClick={markAllRead} disabled={unread === 0}>모두 읽음</button>
+                </div>
+                {events.slice(0, 5).map(e => (
+                  <div className={`notif-row ${e.read ? '' : 'unread'}`} key={e.id}>
+                    <div className="notif-body">
+                      <div className="notif-title">{e.title}</div>
+                      <div className="notif-time mono">{e.time}</div>
+                    </div>
+                  </div>
+                ))}
+                {events.length === 0 && <div className="note" style={{ padding: 12 }}>알림이 없습니다.</div>}
+              </div>
+            )}
+          </div>
+          <div className="topbar-user">
+            <span>{user}</span>
+            <button className="icon-btn" onClick={() => setUser(null)} title="로그아웃"><LogOut size={15} /></button>
+          </div>
         </div>
       </div>
 
@@ -87,12 +197,14 @@ export default function App() {
         <div className="sidebar">
           <NavLink to="/" end className={linkClass}><Home size={17} />&nbsp;대시보드</NavLink>
           <NavLink to="/system-health" className={linkClass}><Activity size={17} />&nbsp;실시간 모니터링</NavLink>
-          <NavLink to="/event-log" className={linkClass}><ClipboardList size={17} />&nbsp;로그 조회</NavLink>
-          <NavLink to="/system-health" className={linkClass}><Settings size={17} />&nbsp;시스템 설정</NavLink>
+          <NavLink to="/notifications" className={linkClass}><Bell size={17} />&nbsp;알림{unread > 0 && <span className="nav-badge">{unread}</span>}</NavLink>
+          <NavLink to="/event-log" className={linkClass}><ClipboardList size={17} />&nbsp;로그/녹화조회</NavLink>
+          <NavLink to="/zone-settings" className={linkClass}><Ruler size={17} />&nbsp;구역설정</NavLink>
 
           <div className="sidebar-devices">
             <div className="sidebar-devices-label">연결 장비</div>
             <div className="device-row"><span className="name">D435i 카메라</span><span className="device-status"><span className="d"></span>정상</span></div>
+            <div className="device-row"><span className="name">모노카메라</span><span className="device-status"><span className="d"></span>정상</span></div>
             <div className="device-row"><span className="name">Jetson Orin Nano</span><span className={`device-status ${rosUp ? '' : 'down'}`}><span className="d"></span>{rosUp ? '정상' : '끊김'}</span></div>
             <div className="device-row"><span className="name">ROS 2</span><span className={`device-status ${rosUp ? '' : 'down'}`}><span className="d"></span>{rosUp ? '정상' : '끊김'}</span></div>
             <div className="device-row"><span className="name">MCU</span><span className="device-status"><span className="d"></span>정상</span></div>
@@ -101,9 +213,11 @@ export default function App() {
 
         <div className="main">
           <Routes>
-            <Route path="/" element={<Dashboard state={state} states={STATES} distance={distance} />} />
+            <Route path="/" element={<Dashboard state={state} states={STATES} distance={distance} helmetOk={helmetOk} doorLocked={doorLocked} conveyorState={conveyorState} fireActive={fireActive} />} />
             <Route path="/system-health" element={<SystemHealth />} />
-            <Route path="/event-log" element={<EventLog />} />
+            <Route path="/notifications" element={<Notifications events={events} onMarkAllRead={markAllRead} />} />
+            <Route path="/event-log" element={<EventLog events={events} storagePct={storagePct} dbQuotaPct={settings.dbQuotaPct} />} />
+            <Route path="/zone-settings" element={<ZoneSettings settings={settings} onChange={setSettings} />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </div>
@@ -113,10 +227,17 @@ export default function App() {
         <div className="controls-label">시뮬레이션 · 아직 Jetson/카메라가 없어 수동으로 상태를 테스트합니다</div>
         <div className="btn-row">
           <button onClick={simulateApproach}>사람 접근 감지</button>
-          <button onClick={simulateFire}>화재 감지</button>
           <button onClick={clearDanger}>위험 해제</button>
           <button className="primary" onClick={forceStop}>강제정지 트리거</button>
           <button onClick={recover} disabled={state !== 'STOP'}>복구 확인</button>
+          <span className="btn-sep" />
+          <button onClick={toggleHelmet}>{helmetOk ? '헬멧 미착용 감지' : '안전모 착용 확인'}</button>
+          <button onClick={simulateConveyorJam} disabled={conveyorState !== 'OK'}>컨베이어 이상감지</button>
+          <button onClick={resetConveyor} disabled={conveyorState === 'OK'}>컨베이어 정상화</button>
+          <span className="btn-sep" />
+          {!fireActive
+            ? <button onClick={simulateFire}>화재 감지</button>
+            : <button className="primary" onClick={resolveFire}>상황종료 (화재)</button>}
           <button onClick={toggleRos}>{rosUp ? 'Jetson/ROS2 연결 끊기' : 'Jetson/ROS2 연결 복구'}</button>
         </div>
       </div>
