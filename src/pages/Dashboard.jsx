@@ -105,13 +105,24 @@ export default function Dashboard({ state, states, distance, helmetOk, doorLocke
               </g>
             </svg>
             <div
-              className="bbox"
-              style={{ left: '38%', top: helmetOk ? '18%' : '14%', width: '24%', height: helmetOk ? '30%' : '36%', borderColor: helmetOk ? '#12b76a' : '#e63946' }}
-            ></div>
-            <div className="bbox-label" style={{ left: '50%', top: helmetOk ? '18%' : '14%', background: helmetOk ? '#12b76a' : '#e63946' }}>
-              {helmetOk ? '안전모 착용' : '안전모 미착용'}
+              className="seg-mask"
+              style={{ left: '38%', top: helmetOk ? '16%' : '12%', width: '24%', height: helmetOk ? '46%' : '50%' }}
+            >
+              <svg viewBox="0 0 100 100" preserveAspectRatio="none" width="100%" height="100%">
+                <path
+                  d="M50 4 C61 4 65 13 61 21 C77 26 81 45 73 57 C79 71 77 90 69 100 L31 100 C23 90 21 71 27 57 C19 45 23 26 39 21 C35 13 39 4 50 4 Z"
+                  fill={helmetOk ? '#12b76a' : '#e63946'}
+                  fillOpacity="0.3"
+                  stroke={helmetOk ? '#12b76a' : '#e63946'}
+                  strokeWidth="2.4"
+                  vectorEffect="non-scaling-stroke"
+                />
+              </svg>
             </div>
-            <div className="cam-caption">모노카메라 · 출입구 (목업)</div>
+            <div className="bbox-label" style={{ left: '50%', top: helmetOk ? '16%' : '12%', background: helmetOk ? '#12b76a' : '#e63946' }}>
+              {helmetOk ? '안전모 착용 · SEG' : '안전모 미착용 · SEG'}
+            </div>
+            <div className="cam-caption">모노카메라 · 출입구 (목업) · Segmentation 탐지</div>
           </div>
           <div className="info-row" style={{ marginTop: 10 }}>
             {doorLocked ? <DoorClosed size={16} style={{ color: 'var(--red)' }} /> : <DoorOpen size={16} style={{ color: 'var(--green)' }} />}
