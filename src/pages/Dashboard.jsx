@@ -1,4 +1,5 @@
-import { Camera, Shield, User, Flame, HardHat, Settings, Bot, Rows3, DoorClosed, DoorOpen, Cpu, Target, MoveHorizontal, MoveVertical, MoveDiagonal, ShieldCheck, Check, ScanFace, AlertTriangle } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Camera, Shield, User, Flame, HardHat, Settings, Bot, Rows3, DoorClosed, DoorOpen, Cpu, Target, MoveHorizontal, MoveVertical, MoveDiagonal, ShieldCheck, Check, ScanFace, AlertTriangle, Maximize2, X } from 'lucide-react';
 
 export default function Dashboard({ state, states, distance, helmetOk, doorLocked, conveyorState, fireActive }) {
   const s = states[state];
@@ -10,6 +11,90 @@ export default function Dashboard({ state, states, distance, helmetOk, doorLocke
   const equipColor = danger || conveyorState === 'JAM' ? '#e63946' : '#12b76a';
   const conveyorColor = conveyorState === 'JAM' ? '#e63946' : (danger ? '#e63946' : '#12b76a');
   const doorColor = fireActive ? '#12b76a' : (doorLocked ? '#e63946' : (danger ? '#e08e0b' : '#98a2b3'));
+
+  // 카메라 확대보기 상태: null | 'mono' | 'd435i'
+  const [expandedCam, setExpandedCam] = useState(null);
+
+  useEffect(() => {
+    if (!expandedCam) return;
+    const onKey = (e) => { if (e.key === 'Escape') setExpandedCam(null); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [expandedCam]);
+
+  const MonoCamVisual = () => (
+    <>
+      <svg viewBox="0 0 400 250" width="100%" height="100%" style={{ display: 'block' }}>
+        <rect width="400" height="250" fill="#e4e9f1" />
+        <rect x="0" y="0" width="400" height="60" fill="#d3dae5" />
+        <g transform="translate(200,150)">
+          <circle cx="0" cy="-38" r="26" fill="#e7c9a9" />
+          <rect x="-30" y="-10" width="60" height="90" rx="16" fill="#5a7a9a" />
+          {helmetOk && <path d="M -28 -50 A 28 28 0 0 1 28 -50 L 30 -40 L -30 -40 Z" fill="#f5b400" />}
+        </g>
+      </svg>
+      <div
+        className="seg-mask"
+        style={{ left: '38%', top: helmetOk ? '16%' : '12%', width: '24%', height: helmetOk ? '46%' : '50%' }}
+      >
+        <svg viewBox="0 0 100 100" preserveAspectRatio="none" width="100%" height="100%">
+          <path
+            d="M50 4 C61 4 65 13 61 21 C77 26 81 45 73 57 C79 71 77 90 69 100 L31 100 C23 90 21 71 27 57 C19 45 23 26 39 21 C35 13 39 4 50 4 Z"
+            fill={helmetOk ? '#12b76a' : '#e63946'}
+            fillOpacity="0.3"
+            stroke={helmetOk ? '#12b76a' : '#e63946'}
+            strokeWidth="2.4"
+            vectorEffect="non-scaling-stroke"
+          />
+        </svg>
+      </div>
+      <div className="bbox-label" style={{ left: '50%', top: helmetOk ? '16%' : '12%', background: helmetOk ? '#12b76a' : '#e63946' }}>
+        {helmetOk ? '안전모 착용 · SEG' : '안전모 미착용 · SEG'}
+      </div>
+      <div className="cam-caption">모노카메라 · 출입구 (목업) · Segmentation 탐지</div>
+    </>
+  );
+
+  const D435iCamVisual = () => (
+    <>
+      <svg viewBox="0 0 400 250" width="100%" height="100%" style={{ display: 'block' }}>
+        <rect width="400" height="250" fill="#e9edf3" />
+        <rect x="0" y="170" width="400" height="80" fill="#dde3ec" />
+        <rect x="20" y="60" width="90" height="110" rx="4" fill="#c9d2e0" />
+        <rect x="250" y="40" width="70" height="130" rx="4" fill="#c9d2e0" />
+        <g transform="translate(150,90)">
+          <rect x="-8" y="60" width="16" height="14" rx="2" fill="#8f9bb3" />
+          <rect x="-4" y="10" width="8" height="52" fill="#8f9bb3" />
+          <circle cx="0" cy="6" r="8" fill="#7787a5" />
+          <rect x="0" y="-2" width="34" height="7" rx="3" fill="#7787a5" />
+          <circle cx="36" cy="1" r="6" fill="#66759a" />
+        </g>
+        <rect x="60" y="185" width="220" height="10" rx="3" fill="#b9c2d1" />
+        <g transform="translate(230,120)">
+          <circle cx="0" cy="0" r="9" fill="#3a4356" />
+          <rect x="-11" y="8" width="22" height="34" rx="6" fill="#f5b400" />
+          <rect x="-6" y="42" width="6" height="22" fill="#3a4356" />
+          <rect x="4" y="42" width="6" height="22" fill="#3a4356" />
+        </g>
+      </svg>
+      <div className="seg-mask" style={{ left: `${boxPct}%`, top: '36%', width: '16%', height: '42%' }}>
+        <svg viewBox="0 0 100 100" preserveAspectRatio="none" width="100%" height="100%">
+          <path
+            d="M50 4 C61 4 65 13 61 21 C77 26 81 45 73 57 C79 71 77 90 69 100 L31 100 C23 90 21 71 27 57 C19 45 23 26 39 21 C35 13 39 4 50 4 Z"
+            fill={boxColor}
+            fillOpacity="0.3"
+            stroke={boxColor}
+            strokeWidth="2.4"
+            vectorEffect="non-scaling-stroke"
+          />
+        </svg>
+      </div>
+      <div className="bbox-label" style={{ left: `${boxPct + 8}%`, top: '36%', background: boxColor }}>작업자 {distance.toFixed(2)}m · SEG</div>
+      <div className="cam-caption">RealSense D435i · 카메라 영상 (목업) · Segmentation 탐지</div>
+    </>
+  );
+
+  const camTitle = expandedCam === 'mono' ? '모노카메라 (출입구 · 헬멧 감지)' : expandedCam === 'd435i' ? 'D435i 카메라 (현장)' : '';
 
   return (
     <>
@@ -30,35 +115,9 @@ export default function Dashboard({ state, states, distance, helmetOk, doorLocke
             <div className="card-head-left"><div className="icon-badge indigo"><ScanFace size={16} /></div><div className="card-title">모노카메라 (출입구 · 헬멧 감지)</div></div>
             <div className={`pill ${helmetOk ? '' : 'live'}`}>{helmetOk ? '안전모 확인됨' : '미착용 감지'}</div>
           </div>
-          <div className="cam-frame">
-            <svg viewBox="0 0 400 250" width="100%" height="100%" style={{ display: 'block' }}>
-              <rect width="400" height="250" fill="#e4e9f1" />
-              <rect x="0" y="0" width="400" height="60" fill="#d3dae5" />
-              <g transform="translate(200,150)">
-                <circle cx="0" cy="-38" r="26" fill="#e7c9a9" />
-                <rect x="-30" y="-10" width="60" height="90" rx="16" fill="#5a7a9a" />
-                {helmetOk && <path d="M -28 -50 A 28 28 0 0 1 28 -50 L 30 -40 L -30 -40 Z" fill="#f5b400" />}
-              </g>
-            </svg>
-            <div
-              className="seg-mask"
-              style={{ left: '38%', top: helmetOk ? '16%' : '12%', width: '24%', height: helmetOk ? '46%' : '50%' }}
-            >
-              <svg viewBox="0 0 100 100" preserveAspectRatio="none" width="100%" height="100%">
-                <path
-                  d="M50 4 C61 4 65 13 61 21 C77 26 81 45 73 57 C79 71 77 90 69 100 L31 100 C23 90 21 71 27 57 C19 45 23 26 39 21 C35 13 39 4 50 4 Z"
-                  fill={helmetOk ? '#12b76a' : '#e63946'}
-                  fillOpacity="0.3"
-                  stroke={helmetOk ? '#12b76a' : '#e63946'}
-                  strokeWidth="2.4"
-                  vectorEffect="non-scaling-stroke"
-                />
-              </svg>
-            </div>
-            <div className="bbox-label" style={{ left: '50%', top: helmetOk ? '16%' : '12%', background: helmetOk ? '#12b76a' : '#e63946' }}>
-              {helmetOk ? '안전모 착용 · SEG' : '안전모 미착용 · SEG'}
-            </div>
-            <div className="cam-caption">모노카메라 · 출입구 (목업) · Segmentation 탐지</div>
+          <div className="cam-frame cam-frame-clickable" onClick={() => setExpandedCam('mono')}>
+            <MonoCamVisual />
+            <div className="cam-expand-hint"><Maximize2 size={14} /></div>
           </div>
           <div className="info-row" style={{ marginTop: 10 }}>
             {doorLocked ? <DoorClosed size={16} style={{ color: 'var(--red)' }} /> : <DoorOpen size={16} style={{ color: 'var(--green)' }} />}
@@ -72,41 +131,9 @@ export default function Dashboard({ state, states, distance, helmetOk, doorLocke
             <div className="card-head-left"><div className="icon-badge"><Camera size={16} /></div><div className="card-title">D435i 카메라 (현장)</div></div>
             <div className="pill live">● 실시간</div>
           </div>
-          <div className="cam-frame">
-            <svg viewBox="0 0 400 250" width="100%" height="100%" style={{ display: 'block' }}>
-              <rect width="400" height="250" fill="#e9edf3" />
-              <rect x="0" y="170" width="400" height="80" fill="#dde3ec" />
-              <rect x="20" y="60" width="90" height="110" rx="4" fill="#c9d2e0" />
-              <rect x="250" y="40" width="70" height="130" rx="4" fill="#c9d2e0" />
-              <g transform="translate(150,90)">
-                <rect x="-8" y="60" width="16" height="14" rx="2" fill="#8f9bb3" />
-                <rect x="-4" y="10" width="8" height="52" fill="#8f9bb3" />
-                <circle cx="0" cy="6" r="8" fill="#7787a5" />
-                <rect x="0" y="-2" width="34" height="7" rx="3" fill="#7787a5" />
-                <circle cx="36" cy="1" r="6" fill="#66759a" />
-              </g>
-              <rect x="60" y="185" width="220" height="10" rx="3" fill="#b9c2d1" />
-              <g transform="translate(230,120)">
-                <circle cx="0" cy="0" r="9" fill="#3a4356" />
-                <rect x="-11" y="8" width="22" height="34" rx="6" fill="#f5b400" />
-                <rect x="-6" y="42" width="6" height="22" fill="#3a4356" />
-                <rect x="4" y="42" width="6" height="22" fill="#3a4356" />
-              </g>
-            </svg>
-            <div className="seg-mask" style={{ left: `${boxPct}%`, top: '36%', width: '16%', height: '42%' }}>
-              <svg viewBox="0 0 100 100" preserveAspectRatio="none" width="100%" height="100%">
-                <path
-                  d="M50 4 C61 4 65 13 61 21 C77 26 81 45 73 57 C79 71 77 90 69 100 L31 100 C23 90 21 71 27 57 C19 45 23 26 39 21 C35 13 39 4 50 4 Z"
-                  fill={boxColor}
-                  fillOpacity="0.3"
-                  stroke={boxColor}
-                  strokeWidth="2.4"
-                  vectorEffect="non-scaling-stroke"
-                />
-              </svg>
-            </div>
-            <div className="bbox-label" style={{ left: `${boxPct + 8}%`, top: '36%', background: boxColor }}>작업자 {distance.toFixed(2)}m · SEG</div>
-            <div className="cam-caption">RealSense D435i · 카메라 영상 (목업) · Segmentation 탐지</div>
+          <div className="cam-frame cam-frame-clickable" onClick={() => setExpandedCam('d435i')}>
+            <D435iCamVisual />
+            <div className="cam-expand-hint"><Maximize2 size={14} /></div>
           </div>
         </div>
       </div>
@@ -172,6 +199,21 @@ export default function Dashboard({ state, states, distance, helmetOk, doorLocke
           </div>
         </div>
       </div>
+
+      {/* 카메라 확대보기 모달 */}
+      {expandedCam && (
+        <div className="cam-modal-overlay" onClick={() => setExpandedCam(null)}>
+          <div className="cam-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="cam-modal-head">
+              <div className="card-title">{camTitle}</div>
+              <button className="cam-modal-close" onClick={() => setExpandedCam(null)}><X size={18} /></button>
+            </div>
+            <div className="cam-frame cam-frame-large">
+              {expandedCam === 'mono' ? <MonoCamVisual /> : <D435iCamVisual />}
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }
