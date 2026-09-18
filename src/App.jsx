@@ -4,16 +4,16 @@ import { Home, Activity, ClipboardList, Shield, Bell, LogOut, Ruler } from 'luci
 import Dashboard from './pages/Dashboard';
 import SystemHealth from './pages/SystemHealth';
 import EventLog from './pages/EventLog.jsx';
-import Notifications from './pages/Notifications.jsx';
-import ZoneSettings from './pages/ZoneSettings.jsx';
 import Login from './pages/Login.jsx';
+import SettingsModal from './components/SettingsModal.jsx';
+
 
 const STATES = {
-  NORMAL:    { name:'정상', hint:'현재 감지된 위험 요소가 없습니다.', box:'#e7f9f0', icon:'#12b76a', sys:'시스템 정상', sysDot:'#37e08a' },
-  WARNING:   { name:'경고', hint:'위험 신호 감지 — 지속시간을 확인하는 중입니다.', box:'#fdf3de', icon:'#e08e0b', sys:'경고', sysDot:'#e08e0b' },
-  EMERGENCY: { name:'비상', hint:'위험상황 확정 — 강제정지로 전환합니다.', box:'#fde8ea', icon:'#e63946', sys:'비상', sysDot:'#e63946' },
-  STOP:      { name:'강제정지', hint:'MCU가 독립적으로 전원을 차단했습니다. 복구 확인이 필요합니다.', box:'#fde8ea', icon:'#e63946', sys:'강제정지', sysDot:'#e63946' },
-  RECOVERY:  { name:'복구', hint:'안전 조건을 확인하고 정상 복귀를 준비 중입니다.', box:'#eaf1ff', icon:'#2f5fdb', sys:'복구 중', sysDot:'#2f5fdb' },
+  NORMAL: { name: '정상', hint: '현재 감지된 위험 요소가 없습니다.', box: '#e7f9f0', icon: '#12b76a', sys: '시스템 정상', sysDot: '#37e08a' },
+  WARNING: { name: '경고', hint: '위험 신호 감지 — 지속시간을 확인하는 중입니다.', box: '#fdf3de', icon: '#e08e0b', sys: '경고', sysDot: '#e08e0b' },
+  EMERGENCY: { name: '비상', hint: '위험상황 확정 — 강제정지로 전환합니다.', box: '#fde8ea', icon: '#e63946', sys: '비상', sysDot: '#e63946' },
+  STOP: { name: '강제정지', hint: 'MCU가 독립적으로 전원을 차단했습니다. 복구 확인이 필요합니다.', box: '#fde8ea', icon: '#e63946', sys: '강제정지', sysDot: '#e63946' },
+  RECOVERY: { name: '복구', hint: '안전 조건을 확인하고 정상 복귀를 준비 중입니다.', box: '#eaf1ff', icon: '#2f5fdb', sys: '복구 중', sysDot: '#2f5fdb' },
 };
 
 function formatDateTime(d) {
@@ -40,6 +40,7 @@ export default function App() {
   ]);
   const [storagePct, setStoragePct] = useState(12.4);
   const [notifOpen, setNotifOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   const [settings, setSettings] = useState({
     safeDistance: 1.20,
@@ -183,6 +184,9 @@ export default function App() {
                   </div>
                 ))}
                 {events.length === 0 && <div className="note" style={{ padding: 12 }}>알림이 없습니다.</div>}
+                <NavLink to="/event-log" className="notif-dropdown-footer" onClick={() => setNotifOpen(false)}>전체 보기 →</NavLink>
+
+                사이드바 네비게이션:
               </div>
             )}
           </div>
@@ -197,9 +201,10 @@ export default function App() {
         <div className="sidebar">
           <NavLink to="/" end className={linkClass}><Home size={17} />&nbsp;대시보드</NavLink>
           <NavLink to="/system-health" className={linkClass}><Activity size={17} />&nbsp;실시간 모니터링</NavLink>
-          <NavLink to="/notifications" className={linkClass}><Bell size={17} />&nbsp;알림{unread > 0 && <span className="nav-badge">{unread}</span>}</NavLink>
+          {/* <NavLink to="/notifications" className={linkClass}><Bell size={17} />&nbsp;알림{unread > 0 && <span className="nav-badge">{unread}</span>}</NavLink> */}
           <NavLink to="/event-log" className={linkClass}><ClipboardList size={17} />&nbsp;로그/녹화조회</NavLink>
-          <NavLink to="/zone-settings" className={linkClass}><Ruler size={17} />&nbsp;구역설정</NavLink>
+          {/* <NavLink to="/zone-settings" className={linkClass}><Ruler size={17} />&nbsp;구역설정</NavLink> */}
+          <button className="nav-item" onClick={() => setSettingsOpen(true)}><Ruler size={17} />&nbsp;설정</button>
 
           <div className="sidebar-devices">
             <div className="sidebar-devices-label">연결 장비</div>
@@ -215,9 +220,9 @@ export default function App() {
           <Routes>
             <Route path="/" element={<Dashboard state={state} states={STATES} distance={distance} helmetOk={helmetOk} doorLocked={doorLocked} conveyorState={conveyorState} fireActive={fireActive} />} />
             <Route path="/system-health" element={<SystemHealth />} />
-            <Route path="/notifications" element={<Notifications events={events} onMarkAllRead={markAllRead} />} />
+            {/* <Route path="/notifications" element={<Notifications events={events} onMarkAllRead={markAllRead} />} /> */}
             <Route path="/event-log" element={<EventLog events={events} storagePct={storagePct} dbQuotaPct={settings.dbQuotaPct} />} />
-            <Route path="/zone-settings" element={<ZoneSettings settings={settings} onChange={setSettings} />} />
+            {/* <Route path="/zone-settings" element={<ZoneSettings settings={settings} onChange={setSettings} />} /> */}
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </div>
@@ -241,6 +246,9 @@ export default function App() {
           <button onClick={toggleRos}>{rosUp ? 'Jetson/ROS2 연결 끊기' : 'Jetson/ROS2 연결 복구'}</button>
         </div>
       </div>
+      {settingsOpen && (
+        <SettingsModal settings={settings} onChange={handleSettingsChange} onClose={() => setSettingsOpen(false)} />
+      )}
     </div>
   );
 }
