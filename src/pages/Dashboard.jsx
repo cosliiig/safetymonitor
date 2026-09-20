@@ -1,5 +1,9 @@
 import { useState, useEffect } from 'react';
-import { Camera, Shield, User, Flame, HardHat, Settings, Bot, Rows3, DoorClosed, DoorOpen, Cpu, Target, MoveHorizontal, MoveVertical, MoveDiagonal, ShieldCheck, Check, ScanFace, AlertTriangle, Maximize2, X } from 'lucide-react';
+import {
+  Camera, Shield, User, Flame, HardHat, Settings, Bot, Rows3, DoorClosed, DoorOpen,
+  Cpu, Target, MoveHorizontal, MoveVertical, MoveDiagonal, ShieldCheck, Check, ScanFace, AlertTriangle, Maximize2, X
+} from 'lucide-react';
+const JETSON_IP = '192.168.137.171'; // 젯슨 IP — 네트워크 바뀌면 여기만 고치면 됨
 
 export default function Dashboard({ state, states, distance, helmetOk, doorLocked, conveyorState, fireActive }) {
   const s = states[state];
@@ -116,7 +120,8 @@ export default function Dashboard({ state, states, distance, helmetOk, doorLocke
             <div className={`pill ${helmetOk ? '' : 'live'}`}>{helmetOk ? '안전모 확인됨' : '미착용 감지'}</div>
           </div>
           <div className="cam-frame cam-frame-clickable" onClick={() => setExpandedCam('mono')}>
-            <MonoCamVisual />
+            <img src={`http://${JETSON_IP}:8082/stream`} alt="모노카메라 실시간 영상"
+              style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
             <div className="cam-expand-hint"><Maximize2 size={14} /></div>
           </div>
           <div className="info-row" style={{ marginTop: 10 }}>
@@ -132,7 +137,8 @@ export default function Dashboard({ state, states, distance, helmetOk, doorLocke
             <div className="pill live">● 실시간</div>
           </div>
           <div className="cam-frame cam-frame-clickable" onClick={() => setExpandedCam('d435i')}>
-            <D435iCamVisual />
+            <img src={`http://${JETSON_IP}:8081/stream`} alt="D435i 실시간 영상"
+              style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
             <div className="cam-expand-hint"><Maximize2 size={14} /></div>
           </div>
         </div>
@@ -209,7 +215,9 @@ export default function Dashboard({ state, states, distance, helmetOk, doorLocke
               <button className="cam-modal-close" onClick={() => setExpandedCam(null)}><X size={18} /></button>
             </div>
             <div className="cam-frame cam-frame-large">
-              {expandedCam === 'mono' ? <MonoCamVisual /> : <D435iCamVisual />}
+              {expandedCam === 'mono'
+                ? <img src={`http://${JETSON_IP}:8082/stream`} alt="모노카메라" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                : <img src={`http://${JETSON_IP}:8081/stream`} alt="D435i" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />}
             </div>
           </div>
         </div>
