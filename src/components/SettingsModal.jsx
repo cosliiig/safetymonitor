@@ -56,7 +56,12 @@ export default function SettingsModal({ settings, onChange, onClose }) {
             {RELAYS.map(r => (
               <div className="relay-test-row" key={r.key}>
                 <span>{r.label}</span>
-                <button>TEST</button>
+                <button onClick={(e) => {
+                  const btn = e.target;
+                  btn.textContent = '전송됨 (MCU 없음)';
+                  btn.disabled = true;
+                  setTimeout(() => { btn.textContent = 'TEST'; btn.disabled = false; }, 1500);
+                }}>TEST</button>
               </div>
             ))}
           </div>

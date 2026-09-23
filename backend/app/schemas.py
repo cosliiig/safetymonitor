@@ -61,6 +61,8 @@ class StatusUpdate(BaseModel):
     """
     state: str                 # NORMAL | WARNING | EMERGENCY | STOP | RECOVERY
     distance: Optional[float] = None
+    x_pos: Optional[float] = None
+    y_pos: Optional[float] = None
     helmet_ok: Optional[bool] = None
     door_locked: Optional[bool] = None
     conveyor_state: Optional[str] = None   # OK | PENDING | JAM

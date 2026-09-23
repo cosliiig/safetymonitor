@@ -5,7 +5,7 @@ import {
 } from 'lucide-react';
 const JETSON_IP = '192.168.137.171'; // 젯슨 IP — 네트워크 바뀌면 여기만 고치면 됨
 
-export default function Dashboard({ state, states, distance, helmetOk, doorLocked, conveyorState, fireActive }) {
+export default function Dashboard({ state, states, distance, helmetOk, doorLocked, conveyorState, fireActive, xPos, yPos }) {
   const s = states[state];
   const danger = (state === 'EMERGENCY' || state === 'STOP') || fireActive;
 
@@ -198,8 +198,8 @@ export default function Dashboard({ state, states, distance, helmetOk, doorLocke
           <div className="ai-grid">
             <div className="ai-cell"><Target /><div className="lbl">감지 객체</div><div className="val">작업자</div></div>
             <div className="ai-cell"><User /><div className="lbl">작업자 거리</div><div className="val mono">{distance.toFixed(2)} m</div></div>
-            <div className="ai-cell"><MoveHorizontal /><div className="lbl">X 위치</div><div className="val mono">0.32 m</div></div>
-            <div className="ai-cell"><MoveVertical /><div className="lbl">Y 위치</div><div className="val mono">1.10 m</div></div>
+            <div className="ai-cell"><MoveHorizontal /><div className="lbl">X 위치</div><div className="val mono">{xPos.toFixed(2)} m</div></div>
+            <div className="ai-cell"><MoveVertical /><div className="lbl">Y 위치</div><div className="val mono">{yPos.toFixed(2)} m</div></div>
             <div className="ai-cell"><MoveDiagonal /><div className="lbl">Z 위치</div><div className="val mono">{distance.toFixed(2)} m</div></div>
             <div className="ai-cell"><ShieldCheck /><div className="lbl">안전구역</div><div className="val" style={{ color: danger ? 'var(--red)' : 'var(--green)' }}>{danger ? '위험' : '정상'}</div></div>
           </div>

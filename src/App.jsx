@@ -9,11 +9,11 @@ import { api, connectStatusSocket } from './api';
 import SettingsModal from './components/SettingsModal.jsx';
 
 const STATES = {
-  NORMAL:    { name:'정상', hint:'현재 감지된 위험 요소가 없습니다.', box:'#e7f9f0', icon:'#12b76a', sys:'시스템 정상', sysDot:'#37e08a' },
-  WARNING:   { name:'경고', hint:'위험 신호 감지 — 지속시간을 확인하는 중입니다.', box:'#fdf3de', icon:'#e08e0b', sys:'경고', sysDot:'#e08e0b' },
-  EMERGENCY: { name:'비상', hint:'위험상황 확정 — 강제정지로 전환합니다.', box:'#fde8ea', icon:'#e63946', sys:'비상', sysDot:'#e63946' },
-  STOP:      { name:'강제정지', hint:'MCU가 독립적으로 전원을 차단했습니다. 복구 확인이 필요합니다.', box:'#fde8ea', icon:'#e63946', sys:'강제정지', sysDot:'#e63946' },
-  RECOVERY:  { name:'복구', hint:'안전 조건을 확인하고 정상 복귀를 준비 중입니다.', box:'#eaf1ff', icon:'#2f5fdb', sys:'복구 중', sysDot:'#2f5fdb' },
+  NORMAL: { name: '정상', hint: '현재 감지된 위험 요소가 없습니다.', box: '#e7f9f0', icon: '#12b76a', sys: '시스템 정상', sysDot: '#37e08a' },
+  WARNING: { name: '경고', hint: '위험 신호 감지 — 지속시간을 확인하는 중입니다.', box: '#fdf3de', icon: '#e08e0b', sys: '경고', sysDot: '#e08e0b' },
+  EMERGENCY: { name: '비상', hint: '위험상황 확정 — 강제정지로 전환합니다.', box: '#fde8ea', icon: '#e63946', sys: '비상', sysDot: '#e63946' },
+  STOP: { name: '강제정지', hint: 'MCU가 독립적으로 전원을 차단했습니다. 복구 확인이 필요합니다.', box: '#fde8ea', icon: '#e63946', sys: '강제정지', sysDot: '#e63946' },
+  RECOVERY: { name: '복구', hint: '안전 조건을 확인하고 정상 복귀를 준비 중입니다.', box: '#eaf1ff', icon: '#2f5fdb', sys: '복구 중', sysDot: '#2f5fdb' },
 };
 
 function formatDateTime(d) {
@@ -37,13 +37,16 @@ export default function App() {
 
   const [state, setState] = useState('NORMAL');
   const [distance, setDistance] = useState(1.82);
-  const [rosUp, setRosUp] = useState(true);
   const [clock, setClock] = useState('--:--:--');
+  const [jetsonLive, setJetsonLive] = useState(false);
+  const lastStatusAt = useRef(0);
 
   const [helmetOk, setHelmetOk] = useState(true);
   const [doorLocked, setDoorLocked] = useState(false);
   const [conveyorState, setConveyorState] = useState('OK');
   const [fireActive, setFireActive] = useState(false);
+  const [xPos, setXPos] = useState(0);
+  const [yPos, setYPos] = useState(0);
 
   const [events, setEvents] = useState([]);
   const [storagePct, setStoragePct] = useState(12.4);
@@ -71,6 +74,13 @@ export default function App() {
     const tick = () => setClock(formatDateTime(new Date()).slice(11));
     tick();
     const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  useEffect(() => {
+    const id = setInterval(() => {
+      setJetsonLive(Date.now() - lastStatusAt.current < 3000);
+    }, 1000);
     return () => clearInterval(id);
   }, []);
 
@@ -109,6 +119,7 @@ export default function App() {
         });
         setStoragePct(p => Math.min(100, +(p + (1.5 + Math.random() * 3)).toFixed(1)));
       } else if (msg.kind === 'status') {
+        lastStatusAt.current = Date.now();
         const s = msg.status;
         if (s.state !== undefined) setState(s.state);
         if (s.distance !== undefined) setDistance(s.distance);
@@ -116,6 +127,8 @@ export default function App() {
         if (s.door_locked !== undefined) setDoorLocked(s.door_locked);
         if (s.conveyor_state !== undefined) setConveyorState(s.conveyor_state);
         if (s.fire_active !== undefined) setFireActive(s.fire_active);
+        if (s.x_pos !== undefined) setXPos(s.x_pos);
+        if (s.y_pos !== undefined) setYPos(s.y_pos);
       }
     });
 
@@ -134,7 +147,7 @@ export default function App() {
   }
 
   function handleLogout() {
-    if (auth) api.logout(auth.token).catch(() => {});
+    if (auth) api.logout(auth.token).catch(() => { });
     setAuth(null);
     try { localStorage.removeItem('robotSafetyAuth'); } catch { }
   }
@@ -185,7 +198,6 @@ export default function App() {
     setState('RECOVERY');
     setTimeout(() => { if (stateRef.current === 'RECOVERY') { setDistance(1.82); setState('NORMAL'); } }, 1500);
   }
-  function toggleRos() { setRosUp(v => !v); }
 
   function toggleHelmet() {
     if (!helmetOk) { setHelmetOk(true); setDoorLocked(false); return; }
@@ -221,7 +233,7 @@ export default function App() {
 
   function markAllRead() {
     setEvents(prev => prev.map(e => ({ ...e, read: true })));
-    if (auth) api.markAllRead(auth.token).catch(() => {});
+    if (auth) api.markAllRead(auth.token).catch(() => { });
   }
 
   function handleSettingsChange(next) {
@@ -257,8 +269,8 @@ export default function App() {
         </div>
         <div className="topbar-right">
           <div className="sys-pill">
-            <span className="sys-dot" style={{ background: rosUp ? sysDot : '#98a2b3' }}></span>
-            {rosUp ? sysLabel : '통신두절 · MCU 단독'}
+            <span className="sys-dot" style={{ background: jetsonLive ? sysDot : '#98a2b3' }}></span>
+            {jetsonLive ? sysLabel : '통신두절 · MCU 단독'}
           </div>
           <div className="mono">{clock}</div>
           <div className="notif-wrap">
@@ -307,18 +319,18 @@ export default function App() {
 
           <div className="sidebar-devices">
             <div className="sidebar-devices-label">연결 장비</div>
-            <div className="device-row"><span className="name">D435i 카메라</span><span className="device-status"><span className="d"></span>정상</span></div>
-            <div className="device-row"><span className="name">모노카메라</span><span className="device-status"><span className="d"></span>정상</span></div>
-            <div className="device-row"><span className="name">Jetson Orin Nano</span><span className={`device-status ${rosUp ? '' : 'down'}`}><span className="d"></span>{rosUp ? '정상' : '끊김'}</span></div>
-            <div className="device-row"><span className="name">ROS 2</span><span className={`device-status ${rosUp ? '' : 'down'}`}><span className="d"></span>{rosUp ? '정상' : '끊김'}</span></div>
-            <div className="device-row"><span className="name">MCU</span><span className="device-status"><span className="d"></span>정상</span></div>
+            <div className="device-row"><span className="name">D435i 카메라</span><span className={`device-status ${jetsonLive ? '' : 'down'}`}><span className="d"></span>{jetsonLive ? '정상' : '끊김'}</span></div>
+            <div className="device-row"><span className="name">모노카메라</span><span className={`device-status ${jetsonLive ? '' : 'down'}`}><span className="d"></span>{jetsonLive ? '정상' : '끊김'}</span></div>
+            <div className="device-row"><span className="name">Jetson Orin Nano</span><span className={`device-status ${jetsonLive ? '' : 'down'}`}><span className="d"></span>{jetsonLive ? '정상' : '끊김'}</span></div>
+            <div className="device-row"><span className="name">ROS 2</span><span className={`device-status ${jetsonLive ? '' : 'down'}`}><span className="d"></span>{jetsonLive ? '정상' : '끊김'}</span></div>
+            <div className="device-row"><span className="name">MCU</span><span className={`device-status ${jetsonLive ? '' : 'down'}`}><span className="d"></span>{jetsonLive ? '정상' : '끊김'}</span></div>
           </div>
         </div>
 
         <div className="main">
           <Routes>
-            <Route path="/" element={<Dashboard state={state} states={STATES} distance={distance} helmetOk={helmetOk} doorLocked={doorLocked} conveyorState={conveyorState} fireActive={fireActive} />} />
-            <Route path="/system-health" element={<SystemHealth />} />
+            <Route path="/" element={<Dashboard state={state} states={STATES} distance={distance} helmetOk={helmetOk} doorLocked={doorLocked} conveyorState={conveyorState} fireActive={fireActive} xPos={xPos} yPos={yPos} />} />
+            <Route path="/system-health" element={<SystemHealth jetsonLive={jetsonLive} />} />
             <Route path="/event-log" element={<EventLog events={events} storagePct={storagePct} dbQuotaPct={settings.dbQuotaPct} />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
@@ -326,21 +338,14 @@ export default function App() {
       </div>
 
       <div className="controls">
-        <div className="controls-label">시뮬레이션 · 아직 Jetson/카메라가 없어 수동으로 상태를 테스트합니다</div>
+        <div className="controls-label">시뮬레이션 · 컨베이어/화재는 아직 실제 센서가 없어 수동으로 테스트합니다</div>
         <div className="btn-row">
-          <button onClick={simulateApproach}>사람 접근 감지</button>
-          <button onClick={clearDanger}>위험 해제</button>
-          <button className="primary" onClick={forceStop}>강제정지 트리거</button>
-          <button onClick={recover} disabled={state !== 'STOP'}>복구 확인</button>
-          <span className="btn-sep" />
-          <button onClick={toggleHelmet}>{helmetOk ? '헬멧 미착용 감지' : '안전모 착용 확인'}</button>
           <button onClick={simulateConveyorJam} disabled={conveyorState !== 'OK'}>컨베이어 이상감지</button>
           <button onClick={resetConveyor} disabled={conveyorState === 'OK'}>컨베이어 정상화</button>
           <span className="btn-sep" />
           {!fireActive
             ? <button onClick={simulateFire}>화재 감지</button>
             : <button className="primary" onClick={resolveFire}>상황종료 (화재)</button>}
-          <button onClick={toggleRos}>{rosUp ? 'Jetson/ROS2 연결 끊기' : 'Jetson/ROS2 연결 복구'}</button>
         </div>
       </div>
 
