@@ -58,8 +58,8 @@ export default function App() {
     safeDistance: 1.20,
     escalateMs: 2500,
     conveyorTimeoutMs: 2000,
-    preRollSec: 3,
-    postRollSec: 5,
+    preRollSec: 5,
+    postRollSec: 15,
     dbQuotaPct: 50,
   });
 

@@ -29,3 +29,4 @@ backend/__pycache__/
 backend/app/__pycache__/
 backend/*.db
 backend/.pytest_cache/
+backend/uploads/

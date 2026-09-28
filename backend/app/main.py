@@ -13,11 +13,14 @@ Robot Safety 프로젝트 백엔드 (FastAPI)
 Swagger UI에서 모든 API를 클릭 몇 번으로 직접 테스트해볼 수 있습니다.
 """
 import secrets
+from fastapi.concurrency import run_in_threadpool
 from datetime import datetime, timezone
 from typing import List
 
-from fastapi import FastAPI, HTTPException, Depends, Header, WebSocket, WebSocketDisconnect
+import os
+from fastapi import FastAPI, HTTPException, Depends, Header, WebSocket, WebSocketDisconnect, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from . import database
 from .schemas import (
@@ -28,6 +31,11 @@ from .schemas import (
 )
 
 app = FastAPI(title="Robot Safety API")
+
+UPLOADS_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "uploads")
+os.makedirs(os.path.join(UPLOADS_DIR, "events"), exist_ok=True)
+app.mount("/uploads", StaticFiles(directory=UPLOADS_DIR), name="uploads")
+
 
 # 프론트엔드(Vite 개발서버, 기본 포트 5173)에서 이 API를 호출할 수 있도록 허용
 app.add_middleware(
@@ -127,6 +135,29 @@ async def create_event(payload: EventCreate, _: str = Depends(require_login)):
     await _broadcast({"kind": "event", "event": event.model_dump()})
     return event
 
+@app.post("/api/events/{event_id}/video", response_model=EventOut)
+async def upload_event_video(event_id: int, file: UploadFile = File(...), _: str = Depends(require_login)):
+    events_dir = os.path.join(UPLOADS_DIR, "events")
+    ext = os.path.splitext(file.filename or "")[1] or ".mp4"
+    save_path = os.path.join(events_dir, f"{event_id}{ext}")
+    content = await file.read()
+
+    def _write():
+        with open(save_path, "wb") as f:
+            f.write(content)
+
+    await run_in_threadpool(_write)
+
+    video_url = f"/uploads/events/{event_id}{ext}"
+    with database.get_conn() as conn:
+        conn.execute("UPDATE events SET video_path = ? WHERE id = ?", (video_url, event_id))
+        row = conn.execute("SELECT * FROM events WHERE id = ?", (event_id,)).fetchone()
+    if row is None:
+        raise HTTPException(status_code=404, detail="이벤트를 찾을 수 없습니다")
+
+    event = _row_to_event(row)
+    await _broadcast({"kind": "event", "event": event.model_dump()})
+    return event
 
 @app.post("/api/events/mark-all-read")
 def mark_all_read(_: str = Depends(require_login)):

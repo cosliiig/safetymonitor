@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { User, Rows3, Flame, HardHat, Play, HardDrive } from 'lucide-react';
+import { User, Rows3, Flame, HardHat, Play, HardDrive, X } from 'lucide-react';
 
 const TYPE_META = {
   HUMAN: { label: '로봇 접근', icon: User, color: 'var(--red)' },
@@ -18,6 +18,7 @@ const FILTERS = [
 
 export default function EventLog({ events, storagePct, dbQuotaPct }) {
   const [filter, setFilter] = useState('ALL');
+  const [playingVideo, setPlayingVideo] = useState(null);
   const rows = filter === 'ALL' ? events : events.filter(e => e.type === filter);
 
   return (
@@ -46,7 +47,11 @@ export default function EventLog({ events, storagePct, dbQuotaPct }) {
           const Icon = meta.icon;
           return (
             <div className="rec-row" key={e.id}>
-              <div className="rec-thumb" style={{ background: meta.color }}>
+              <div
+                className="rec-thumb"
+                style={{ background: meta.color, cursor: e.video_path ? 'pointer' : 'default' }}
+                onClick={() => e.video_path && setPlayingVideo(e)}
+              >
                 <Play size={16} />
               </div>
               <div className="rec-body">
@@ -63,6 +68,22 @@ export default function EventLog({ events, storagePct, dbQuotaPct }) {
       </div>
 
       <div className="note">SSD 전체 용량의 {dbQuotaPct}%가 이벤트 DB에 할당되며, 초과 시 큐/스택 알고리즘으로 오래된 영상부터 자동 삭제됩니다.</div>
+      {playingVideo && (
+        <div className="cam-modal-overlay" onClick={() => setPlayingVideo(null)}>
+          <div className="cam-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="cam-modal-head">
+              <div className="card-title">{playingVideo.title}</div>
+              <button className="cam-modal-close" onClick={() => setPlayingVideo(null)}><X size={18} /></button>
+            </div>
+            <video
+              src={`http://192.168.137.1:8000${playingVideo.video_path}`}
+              controls
+              autoPlay
+              style={{ width: '100%', maxHeight: '70vh', display: 'block', borderRadius: 8 }}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
